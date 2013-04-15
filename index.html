@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Set the viewport width to device width for mobile -->
+    <meta name="viewport" content="width=device-width" />
+    <title>Ember - Foundation - Wordpress</title>
+    <link rel="stylesheet" href="css/foundation.css">
+  </head>
+  <body>
+    <script type="text/x-handlebars" data-template-name="application">
+    <div class="row">
+      <div class="large-12 columns">
+        <h1>Ember - Foundation - Wordpress</h1>
+        <hr>
+        <p>{{ outlet }}</p>
+      </div>
+    </div>
+      
+    </script>
+    
+    <script type="text/x-handlebars" data-template-name="posts">
+      <div class="row">
+        <div class="large-4 columns">
+          {{template "postMenu"}}
+        </div>
+        <div class="large-8 columns">
+           {{ outlet }}
+         </div>
+      </div>
+    </script>
+
+    <script type="text/x-handlebars" data-template-name="posts/index">
+      Select a post
+    </script>
+
+    <script type="text/x-handlebars" data-template-name="postMenu">
+      <h2>Posts</h2>
+      {{#each post in controller}}
+        {{#linkTo "post" post class="row"}}{{raw post.title}}{{/linkTo}}
+      {{/each}}
+    </script>
+    
+    <script type="text/x-handlebars" data-template-name="post">
+      <h2>{{raw title}}</h2> 
+      {{raw post_text}}  
+    </script>
+    
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0-rc.3/handlebars.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/ember.js/1.0.0-rc.2/ember.js"></script>
+    <script>
+      var App = Ember.Application.create();
+
+      App._blog_url = "http://wp.waltermiller.ca/?json=1&callback=?";
+      App._posts = {};
+
+      //Router
+      App.Router.map(function(){
+          this.resource('posts', function() {
+              this.resource('post', {path: ':post_id'});
+          }); 
+      });
+
+      App.Post = Ember.Object.extend({
+        title : null,
+        post_text : null
+      });
+
+
+      App.Post.reopenClass({
+        /* This function is largely stolen from emberreddit.  Opensource bitches. */
+        findAll: function() {
+          return $.getJSON(App._blog_url).then(function(response) {
+            var links = [];
+            response.posts.forEach(function (post) {
+
+              //needed to rename one of the values, content is a reserved word in parts of ember
+              post.post_text = post.content;
+
+              //without ember data we need to save the results ourselves somewhere
+              App._posts[post.id] = post;
+
+              links.push(App.Post.create(post));
+            });
+            return links;
+          });
+        },
+
+        find: function(id){
+          return App._posts[id];
+        }
+
+      });
+
+
+      //Note the plurals on the next two routes
+      App.PostsRoute =  Ember.Route.extend({
+          model: function(){
+              return App.Post.findAll();
+          }
+      });
+
+      App.PostRoute =  Ember.Route.extend({
+          model: function(params){
+              return App.Post.find(params.post_id);
+          }
+      });
+
+      App.IndexRoute = Ember.Route.extend({
+          redirect: function() {
+              this.transitionTo('posts');
+          }
+      });
+
+
+      //Helpers
+      /* We need this because wp-json-api values are already in html
+      ** and Ember escapes text by default */
+      Ember.Handlebars.registerBoundHelper('raw', function(value, options) 
+        //sometimes value gets passed a null string, not sure why it happens.
+        value = value || "Busted";
+        return new Handlebars.SafeString(value);
+      });
+
+
+      //Controllers
+      App.PostsController = Ember.ArrayController.extend();
+      App.PostController = Ember.ObjectController.extend();
+    </script>
+  </body>
+</html>
