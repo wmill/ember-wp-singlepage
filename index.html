@@ -49,7 +49,7 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0-rc.3/handlebars.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/ember.js/1.0.0-rc.2/ember.js"></script>
-    <script>
+    <script type="text/javascript">
       var App = Ember.Application.create();
 
       App._blog_url = "http://wp.waltermiller.ca/?json=1&callback=?";
@@ -62,10 +62,7 @@
           }); 
       });
 
-      App.Post = Ember.Object.extend({
-        title : null,
-        post_text : null
-      });
+      App.Post = Ember.Object.extend();
 
 
       App.Post.reopenClass({
@@ -117,7 +114,7 @@
       //Helpers
       /* We need this because wp-json-api values are already in html
       ** and Ember escapes text by default */
-      Ember.Handlebars.registerBoundHelper('raw', function(value, options) 
+      Ember.Handlebars.registerBoundHelper('raw', function(value, options) {
         //sometimes value gets passed a null string, not sure why it happens.
         value = value || "Busted";
         return new Handlebars.SafeString(value);
