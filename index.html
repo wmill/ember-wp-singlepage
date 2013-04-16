@@ -53,6 +53,7 @@
       var App = Ember.Application.create();
 
       App._blog_url = "http://wp.waltermiller.ca/?json=1&callback=?";
+      //App._blog_url = "/posts.json";
       App._posts = {};
 
       //Router
@@ -76,10 +77,11 @@
               post.post_text = post.content;
 
               //without ember data we need to save the results ourselves somewhere
-              App._posts[post.id] = post;
-
-              links.push(App.Post.create(post));
+              var post_obj = App.Post.create(post)
+              App._posts[post.id] = post_obj;
+              links.push(post_obj);
             });
+            App._post_list = links;
             return links;
           });
         },
@@ -94,7 +96,7 @@
       //Note the plurals on the next two routes
       App.PostsRoute =  Ember.Route.extend({
           model: function(){
-              return App.Post.findAll();
+              return App._post_list || App.Post.findAll();
           }
       });
 
