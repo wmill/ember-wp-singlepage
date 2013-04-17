@@ -56,7 +56,6 @@
 
       App._blog_url = "http://wp.waltermiller.ca/?json=1&callback=?";
       //App._blog_url = "/posts.json";
-      App._posts = {};
 
       //Router
       App.Router.map(function(){
@@ -93,8 +92,20 @@
         _posts: [],
         _posts_by_id: {},
 
-        addElement: function(item) {
-          this._posts.pushObject(item);
+        addElement: function(post_data) {
+          //add can either create or update
+          if (post_data.id in this._posts_by_id){
+            var post  = this._posts_by_id[post_data.id];
+            post.reopen(post_data);
+            ['title', 'post_text'].forEach(function(attr){
+              post.notifyPropertyChange(attr);
+            });
+          }
+          else {
+            var post = App.Post.create(post_data);
+            this._posts.pushObject(post); 
+            this._posts_by_id[post_data.id] = post;          
+          }
         },
 
         elementAdded: function() {
@@ -106,11 +117,15 @@
         },
 
         find: function(id){
-          if (id in  _posts_by_id){
+          if (id in this._posts_by_id){
             return this._posts_by_id[id];
           }
           else {
-            return App.Post.create({title: "Invalid id", post_text: "Lookup failed"});
+            //couldn't find post.  Create a temporay post and hope the proper one loads
+            var post = App.Post.create({'id': id, title: "Invalid id", post_text: "Lookup failed"});
+            this._posts.pushObject(post); 
+            this._posts_by_id[id] = post;              
+            return post;
           }
         }
 
@@ -126,20 +141,12 @@
 
       (loadPosts = function() {
         return $.getJSON(App._blog_url).then(function(response) {
-          var links = [];
           response.posts.forEach(function (post) {
-
             //needed to rename one of the values, content is a reserved word in parts of ember
             post.post_text = post.content;
-
             //without ember data we need to save the results ourselves somewhere
-            var post_obj = App.Post.create(post)
-            App._posts[post.id] = post_obj;
-            links.push(post_obj);
-            App.postsController.addElement(post_obj);
+            App.postsController.addElement(post);
           });
-          App._post_list = links;
-          return links;
         });
       })();
     </script>
