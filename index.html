@@ -41,6 +41,8 @@
       {{else}}
         Loading...
       {{/each}}
+      <br>
+      <button onclick='App.postsController.fetchNextPage();'>Show More...</button>
     </script>
     
     <script type="text/x-handlebars" data-template-name="post">
@@ -54,7 +56,7 @@
     <script type="text/javascript">
       var App = Ember.Application.create();
 
-      App._blog_url = "http://wp.waltermiller.ca/?json=1&callback=?";
+      App._blog_url = "http://wp.waltermiller.ca/?json=1";
       //App._blog_url = "/posts.json";
 
       //Router
@@ -91,6 +93,7 @@
       App.postsController = Ember.ArrayController.create({
         _posts: [],
         _posts_by_id: {},
+        _page: 1,
 
         addElement: function(post_data) {
           //add can either create or update
@@ -127,6 +130,18 @@
             this._posts_by_id[id] = post;              
             return post;
           }
+        },
+
+        fetchNextPage: function(){
+          $.getJSON(App._blog_url + "&page=" + this._page + "&callback=?").then(function(response) {
+            response.posts.forEach(function (post) {
+              //needed to rename one of the values, content is a reserved word in parts of ember
+              post.post_text = post.content;
+              //without ember data we need to save the results ourselves somewhere
+              App.postsController.addElement(post);
+            });
+          });
+          this._page++;
         }
 
       });
@@ -139,16 +154,7 @@
         return new Handlebars.SafeString(value);
       });
 
-      (loadPosts = function() {
-        return $.getJSON(App._blog_url).then(function(response) {
-          response.posts.forEach(function (post) {
-            //needed to rename one of the values, content is a reserved word in parts of ember
-            post.post_text = post.content;
-            //without ember data we need to save the results ourselves somewhere
-            App.postsController.addElement(post);
-          });
-        });
-      })();
+      App.postsController.fetchNextPage();
     </script>
   </body>
 </html>
