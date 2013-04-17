@@ -38,6 +38,8 @@
       <h2>Posts</h2>
       {{#each post in controller}}
         {{#linkTo "post" post class="row"}}{{raw post.title}}{{/linkTo}}
+      {{else}}
+        Loading...
       {{/each}}
     </script>
     
@@ -53,7 +55,7 @@
       var App = Ember.Application.create();
 
       App._blog_url = "http://wp.waltermiller.ca/?json=1&callback=?";
-      App._blog_url = "/posts.json";
+      //App._blog_url = "/posts.json";
       App._posts = {};
 
       //Router
@@ -93,7 +95,6 @@
 
         addElement: function(item) {
           this._posts.pushObject(item);
-          this._posts_by_id[item.get('id')] = item;
         },
 
         elementAdded: function() {
@@ -105,7 +106,12 @@
         },
 
         find: function(id){
-          return App._posts[id];
+          if (id in  _posts_by_id){
+            return this._posts_by_id[id];
+          }
+          else {
+            return App.Post.create({title: "Invalid id", post_text: "Lookup failed"});
+          }
         }
 
       });
@@ -115,8 +121,6 @@
       /* We need this because wp-json-api values are already in html
       ** and Ember escapes text by default */
       Ember.Handlebars.registerBoundHelper('raw', function(value, options) {
-        //sometimes value gets passed a null string, not sure why it happens.
-        value = value || "Busted";
         return new Handlebars.SafeString(value);
       });
 
