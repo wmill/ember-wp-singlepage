@@ -53,7 +53,7 @@
       var App = Ember.Application.create();
 
       App._blog_url = "http://wp.waltermiller.ca/?json=1&callback=?";
-      //App._blog_url = "/posts.json";
+      App._blog_url = "/posts.json";
       App._posts = {};
 
       //Router
@@ -66,50 +66,48 @@
       App.Post = Ember.Object.extend();
 
 
-      App.Post.reopenClass({
-        /* This function is largely stolen from emberreddit.  Opensource bitches. */
-        findAll: function() {
-          return $.getJSON(App._blog_url).then(function(response) {
-            var links = [];
-            response.posts.forEach(function (post) {
-
-              //needed to rename one of the values, content is a reserved word in parts of ember
-              post.post_text = post.content;
-
-              //without ember data we need to save the results ourselves somewhere
-              var post_obj = App.Post.create(post)
-              App._posts[post.id] = post_obj;
-              links.push(post_obj);
-            });
-            App._post_list = links;
-            return links;
-          });
-        },
-
-        find: function(id){
-          return App._posts[id];
-        }
-
-      });
-
-
       //Note the plurals on the next two routes
       App.PostsRoute =  Ember.Route.extend({
-          model: function(){
-              return App._post_list || App.Post.findAll();
-          }
+        model: function(){
+          return App.postsController.findAll();
+        }
       });
 
       App.PostRoute =  Ember.Route.extend({
-          model: function(params){
-              return App.Post.find(params.post_id);
-          }
+        model: function(params){
+          return App.postsController.find(params.post_id);
+        }
       });
 
       App.IndexRoute = Ember.Route.extend({
           redirect: function() {
               this.transitionTo('posts');
           }
+      });
+
+      //Controller
+
+      App.postsController = Ember.ArrayController.create({
+        _posts: [],
+        _posts_by_id: {},
+
+        addElement: function(item) {
+          this._posts.pushObject(item);
+          this._posts_by_id[item.get('id')] = item;
+        },
+
+        elementAdded: function() {
+          console.log('ok'); // not invoked...
+        }.observes('_posts.@each'),
+
+        findAll: function() {
+          return this._posts;
+        },
+
+        find: function(id){
+          return App._posts[id];
+        }
+
       });
 
 
@@ -121,6 +119,25 @@
         value = value || "Busted";
         return new Handlebars.SafeString(value);
       });
+
+      (loadPosts = function() {
+        return $.getJSON(App._blog_url).then(function(response) {
+          var links = [];
+          response.posts.forEach(function (post) {
+
+            //needed to rename one of the values, content is a reserved word in parts of ember
+            post.post_text = post.content;
+
+            //without ember data we need to save the results ourselves somewhere
+            var post_obj = App.Post.create(post)
+            App._posts[post.id] = post_obj;
+            links.push(post_obj);
+            App.postsController.addElement(post_obj);
+          });
+          App._post_list = links;
+          return links;
+        });
+      })();
     </script>
   </body>
 </html>
